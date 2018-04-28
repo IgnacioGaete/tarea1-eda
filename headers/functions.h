@@ -7,13 +7,13 @@
 #define FUNCTIONS_H
 
 // Global definitions:
-// Simbols:
-#define START_POINT       'A'
-#define END_POINT         'B'
-#define STAIRS            'E'
-#define OBSTACLE          'O'
-#define PENDIENT          'S'
-#define NORMAL_FLOOR      '+'
+// Simbols (ASCII values):
+#define START_POINT        65
+#define END_POINT          66
+#define STAIRS             69
+#define OBSTACLE           79
+#define PENDIENT           83
+#define NORMAL_FLOOR       43
 
 // Costs:
 #define START_POINT_COST   -1
@@ -24,12 +24,11 @@
 #define NORMAL_FLOOR_COST  1
 
 // Others:
-#define MAX_NUM_COL        10
-
 
 // Global variables:
 static char *map_route=NULL;
 static FILE *map_file=NULL;
+static char valid_characters[6]={'A','B','E','O','S','+'};
 
 #endif
 
@@ -45,10 +44,10 @@ char get_option(void);
 void load_and_print_map(void);
 
 // Verifies the map and gets the dimensions
-int verify_map(int *);
+int verify_map(int*);
 
 // Verifies if the line contains valid simbols
-int verify_line(char *line)
+int verify_line(char*);
 
 // Prints a welcome message
 void welcome(void);

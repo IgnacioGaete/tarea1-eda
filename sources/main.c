@@ -8,7 +8,7 @@ int main(int argc,char **argv){
 		if (option!='0')
 			main_menu();//print the main menu
 		option=get_option();//user's option
-		switch(option) {
+		switch(option){
 			case '1':
 				load_and_print_map();
 				break;

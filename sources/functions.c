@@ -1,10 +1,5 @@
 #include "../headers/functions.h"
 
-// Global variables:
-//static char *map_route=NULL;
-//static FILE *map_file=NULL;
-//static char allowed_characters={};
-
 // Gets the location of the map privided via command line
 /* READY */
 void get_map_route(int argc,char **argv){
@@ -26,7 +21,7 @@ void get_map_route(int argc,char **argv){
 /* READY */
 char get_option(void){
 	printf("Ingrese su opción: ");
-	char option[5];
+	char option[20];
 	scanf("%s",option);
 	printf("\n");
 	if(('0'<option[0])&&(option[0]<'9')){
@@ -37,15 +32,15 @@ char get_option(void){
 }
 
 // Load the map to map_file and prints it, only if verify_map is true
-/* INCOMPLETE */
+/* READY */
 void load_and_print_map(void){
-	int dim[2]={0,0};
+	int dim[2];
 	if(verify_map(dim)){
-		char line_buffer[MAX_NUM_COL];
+		char line_buffer[20];
 		map_file=fopen(map_route,"r");
 		printf("¡Mapa cargado con éxito!. Su contenido se muestra a continuación:\n\n");
 		while (fscanf(map_file,"%s",line_buffer)!=EOF)
-			printf("%s\n",buffer);
+			printf("%s\n",line_buffer);
 		fclose(map_file);
 		printf("\nNúmero de columnas: %d\nNúmero de filas: %d\n",dim[0],dim[1]);
 		sleep(3);
@@ -58,16 +53,16 @@ void load_and_print_map(void){
 }
 
 // Verifies the map and obtains the dimensions
+/* READY */
 int verify_map(int *dim){
 	map_file=fopen(map_route,"r");
 	int width=-1,height=0;
-	int out=1;
-	char line_buffer[MAX_NUM_COL];
+	int out=1;//return value of the function
+	char line_buffer[20];
 	while(fscanf(map_file,"%s",line_buffer)!=EOF){
 		if(width==-1)
 			width=strlen(line_buffer);
-		if((strlen(line_buffer)!=width)||verify_line(line_buffer)){
-			printf("ERROR: Mapa incorrecto.\n");
+		if((strlen(line_buffer)!=width)||(!verify_line(line_buffer))){
 			width=-1;
 			height=-1;
 			out=0;
@@ -82,9 +77,20 @@ int verify_map(int *dim){
 }
 
 // Verifies if the line contains valid simbols
-/* INCOMPLETE */
+/* READY */
 int verify_line(char *line){
-	/* CONTINUE HERE */
+	int i,j,c;
+	for(i=0;i<strlen(line);i++){
+		c=0;
+		for(j=0;j<sizeof(valid_characters)/sizeof(char);j++){
+			if(*(line+i)==valid_characters[j])
+				c=1;
+		}
+		if(c==0){
+			return 0;
+		}
+	}
+	return 1;
 }
 
 // Prints a welcome message
