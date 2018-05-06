@@ -1,8 +1,8 @@
 #include "../headers/functions.h"
 
-// Gets the location of the map privided via command line
+// Gets the location of the map provided via command line
 /* READY */
-void get_map_route(int argc,char **argv){
+char *get_map_path(int argc,char **argv){
 	if(argc==1){
 		printf("ERROR: Debe ingresar ubicación de archivo \"mapa.txt\".\n");
 		exit(1);
@@ -11,10 +11,7 @@ void get_map_route(int argc,char **argv){
 		printf("ERROR: Demasiados argumentos ingresados.\n");
 		exit(1);
 	}
-	else{
-		map_route=argv[1];
-		return;
-	}
+	return argv[1];
 }
 
 // Gets the user's option from the command line
@@ -24,73 +21,208 @@ char get_option(void){
 	char option[20];
 	scanf("%s",option);
 	printf("\n");
-	if(('0'<option[0])&&(option[0]<'9')){
+	if((strlen(option)==1)&&('1'<=option[0])&&(option[0]<='8')){
 		return option[0];
 	}
 	else
 		return '0';
 }
 
-// Load the map to map_file and prints it, only if verify_map is true
+// Load the map in *map
 /* READY */
-void load_and_print_map(void){
-	int dim[2];
-	if(verify_map(dim)){
-		char line_buffer[20];
-		map_file=fopen(map_route,"r");
-		printf("¡Mapa cargado con éxito!. Su contenido se muestra a continuación:\n\n");
-		while (fscanf(map_file,"%s",line_buffer)!=EOF)
-			printf("%s\n",line_buffer);
-		fclose(map_file);
-		printf("\nNúmero de columnas: %d\nNúmero de filas: %d\n",dim[0],dim[1]);
-		sleep(3);
-		return;
+void load_map(Map **map){
+	char *temp_path=(*map)->path;
+	free(*map);
+	*map=(Map*)calloc((size_t)1,sizeof(Map));
+	(*map)->path=temp_path;
+	FILE *map_file=fopen((*map)->path,"r");
+	int height=0,width=0;
+	char line_buffer[MAX_MAP_SIZE];
+	int i;
+	while(fscanf(map_file,"%s",line_buffer)!=EOF){
+		if(width==0)
+			width=strlen(line_buffer);
+		for(i=0;i<width;i++)
+			((*map)->content)[height][i]=line_buffer[i];
+		height++;
 	}
-	else{
-		printf("ERROR: Mapa inválido.\n");
-		return;
-	}
+	(*map)->rows=height;
+	(*map)->columns=width;
+	fclose(map_file);
+	return;
 }
 
-// Verifies the map and obtains the dimensions
+// Verifies the map, obtains dimensions and stores it in map_dimensions[2] = {nrows,ncols}
 /* READY */
-int verify_map(int *dim){
-	map_file=fopen(map_route,"r");
-	int width=-1,height=0;
-	int out=1;//return value of the function
-	char line_buffer[20];
+int verify_map(Map map){
+	FILE *map_file=fopen(map.path,"r");
+	int width=-1;
+	char line_buffer[MAX_MAP_SIZE];
 	while(fscanf(map_file,"%s",line_buffer)!=EOF){
 		if(width==-1)
 			width=strlen(line_buffer);
-		if((strlen(line_buffer)!=width)||(!verify_line(line_buffer))){
-			width=-1;
-			height=-1;
-			out=0;
-			break;
-		}
-		height++;
-	}
-	*dim=width;
-	*(dim+1)=height;
-	fclose(map_file);
-	return out;
-}
-
-// Verifies if the line contains valid simbols
-/* READY */
-int verify_line(char *line){
-	int i,j,c;
-	for(i=0;i<strlen(line);i++){
-		c=0;
-		for(j=0;j<sizeof(valid_characters)/sizeof(char);j++){
-			if(*(line+i)==valid_characters[j])
-				c=1;
-		}
-		if(c==0){
+		if((strlen(line_buffer)!=width)||(!verify_line(line_buffer))||(strlen(line_buffer)<2)){
+			fclose(map_file);
 			return 0;
 		}
 	}
+	fclose(map_file);
 	return 1;
+}
+
+// Verifies if the given line contains only valid simbols
+/* READY */
+int verify_line(char *line){
+	int i,j;
+	int flag;
+	for(i=0;i<strlen(line);i++){
+		flag=0;
+		for(j=0;j<sizeof(valid_characters)/sizeof(char);j++)
+			if(*(line+i)==valid_characters[j])
+				flag=1;
+		if(flag==0)
+			return 0;
+	}
+	return 1;
+}
+
+int verify_route(char *route,Map map){
+	int i,iA;
+	int j,jA;
+	for(i=0;i<map.rows;i++){
+		for(j=0;j<map.columns;j++){
+			if(map.content[i][j]==(char)START_POINT){
+				iA=i;
+				jA=j;
+			}
+		}
+	}
+	for(i=0;route[i]!='\0';i++){
+		switch(route[i]){
+			case '^':
+				iA--;
+				break;
+			case 'v':
+				iA++;
+				break;
+			case '<':
+				jA--;
+				break;
+			case '>':
+				jA++;
+				break;
+			default:
+				return 0;
+				break;
+		}
+		if((iA<0)||(jA<0)||(iA>=map.rows)||(jA>=map.columns))
+			return 0;
+		if(map.content[iA][jA]==(char)OBSTACLE)
+			return 0;
+	}
+	return 1;
+}
+
+// Generates a random map. Returns 1 if the operation was successful
+int generate_map(Map **map,int nfil,int ncol){
+	if((nfil>1)&&(nfil<=MAX_MAP_SIZE)&&(ncol>1)&&(ncol<=MAX_MAP_SIZE)&&(map!=NULL)){
+		char *temp_path=(*map)->path;
+		//free(*map);
+		*map=(Map*1)calloc((size_t)1,sizeof(Map));
+		(*map)->path=temp_path;
+		(*map)->rows=nfil;
+		(*map)->columns=ncol;
+		srand(time(NULL));
+		int i=random()%nfil;
+		int j=random()%ncol;
+		int i_aux,j_aux;
+		char char_buffer;
+		do{
+			i_aux=random()%nfil;
+			j_aux=random()%ncol;
+		} while((i_aux==i)||(j_aux==j));
+		(*map)->content[i][j]=(char)START_POINT;
+		(*map)->content[i_aux][j_aux]=(char)END_POINT;
+		for(i=0;i<nfil;i++){
+			for(j=0;j<ncol;j++){
+				if(((*map)->content[i][j]!=(char)START_POINT)&&((*map)->content[i][j]!=(char)END_POINT)){
+					do{
+						i_aux=random()%(sizeof(valid_characters)/sizeof(char));
+						char_buffer=valid_characters[i_aux];
+					} while((char_buffer==(char)START_POINT)||(char_buffer==(char)END_POINT));
+					(*map)->content[i][j]=char_buffer;
+				}
+			}
+		}
+		return 1;
+	}
+	else
+		return 0;
+}
+
+void update_txt(Map map){
+	FILE *map_file=fopen(map.path,"w");
+	int i,j;
+	for(i=0;i<map.rows;i++){
+		for(j=0;j<map.columns;j++)
+			fprintf(map_file,"%c",map.content[i][j]);
+		fprintf(map_file,"%c",'\n');
+	}
+	fclose(map_file);
+}
+
+int route_cost(char *route,Map map,int *goal){
+	int cost=0;
+	int i,iA,iB;
+	int j,jA,jB;
+	for(i=0;i<map.rows;i++){
+		for(j=0;j<map.columns;j++){
+			if(map.content[i][j]==(char)START_POINT){
+				iA=i;
+				jA=j;
+			}
+			if(map.content[i][j]==(char)END_POINT){
+				iB=i;
+				jB=j;
+			}
+		}
+	}
+	for(i=0;route[i]!=EOF;i++){
+		if(route[i]=='^')
+			iA--;
+		if(route[i]=='v')
+			iA++;
+		if(route[i]=='>')
+			jA++;
+		if(route[i]=='<')
+			jA--;
+		switch(map.content[iA][jA]){
+			case (char)STAIRS:
+				cost+=STAIRS_COST;
+				break;
+			case (char)PENDIENT:
+				cost+=PENDIENT_COST;
+				break;
+			case (char)NORMAL_FLOOR:
+				cost+=NORMAL_FLOOR_COST;
+				break;
+			default:
+				break;
+		}
+	}
+	*goal=map.content[iA][jA]==(char)END_POINT ? 1 : 0;
+	return cost;
+}
+
+// Gets dimensions to generate a random map. Returns it in an array
+void get_dimensions(int *nfil,int *ncol){
+	printf("Ingrese número de filas (máximo %d): ",MAX_MAP_SIZE);
+	scanf("%d",nfil);
+	printf("\n");
+	printf("Ingrese número de columnas (máximo %d): ",MAX_MAP_SIZE);
+	scanf("%d",ncol);
+	printf("\n");
+	return;
 }
 
 // Prints a welcome message
@@ -121,5 +253,20 @@ void main_menu(void){
 	printf("7) Encontrar la mejor ruta posible.\n");
 	printf("8) Salir del programa.\n");
 	printf("\n");
+	return;
+}
+
+// Prints the map stored in map->content
+void print_map(Map map){
+	int rows=map.rows;
+	int columns=map.columns;
+	int i,j;
+	printf("\n");
+	for(i=0;i<rows;i++){
+		for(j=0;j<columns;j++)
+			printf("%c",map.content[i][j]);
+		printf("\n");
+	}
+	printf("\nNúmero de filas: %d\nNúmero de columnas: %d\n\n",rows,columns);
 	return;
 }
